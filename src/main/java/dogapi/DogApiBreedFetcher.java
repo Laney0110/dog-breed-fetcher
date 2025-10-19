@@ -5,6 +5,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.*;
@@ -24,12 +25,67 @@ public class DogApiBreedFetcher implements BreedFetcher {
      * @throws BreedNotFoundException if the breed does not exist (or if the API call fails for any reason)
      */
     @Override
-    public List<String> getSubBreeds(String breed) {
+    public List<String> getSubBreeds(String breed)
+            throws BreedNotFoundException, IOException {
         // TODO Task 1: Complete this method based on its provided documentation
         //      and the documentation for the dog.ceo API. You may find it helpful
         //      to refer to the examples of using OkHttpClient from the last lab,
         //      as well as the code for parsing JSON responses.
         // return statement included so that the starter code can compile and run.
-        return new ArrayList<>();
+        if (breed == null || breed.isBlank()) {
+            throw new BreedNotFoundException("Breed is null or blank");
+        }
+        String safe = breed.trim().toLowerCase();
+        String url = "https://dog.ceo/api/breed/" + safe + "/list";
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP error");
+            }
+            if (response.body() == null) {
+                throw new IOException("Empty response");
+            }
+            String body = response.body().string();
+            final JSONObject json;
+            try {
+                json = new JSONObject(body);
+            } catch (JSONException e) {
+                throw new IOException(e);
+            }
+            final String status;
+            try {
+                status = json.getString("status");
+            } catch (JSONException e) {
+                throw new IOException(e);
+            }
+            if ("success".equals(status)) {
+                final JSONArray array;
+                try {
+                    array = json.getJSONArray("message");
+                } catch (JSONException e) {
+                    throw new IOException(e);
+                }
+                List<String> result = new ArrayList<>();
+                for (int i = 0; i < array.length(); i++) {
+                    result.add(array.getString(i));
+                }
+                return result;
+            } else if ("error".equals(status)) {
+                final String message;
+                try {
+                    message = json.getString("message");
+                } catch (JSONException e) {
+                    throw new IOException(e);
+                }
+                if (message.contains("Breed not found")) {
+                    throw new BreedNotFoundException(breed);
+                }
+                throw new IOException(message);
+            } else {
+                throw new IOException(status);
+            }
+        }
     }
 }
