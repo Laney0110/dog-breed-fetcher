@@ -1,5 +1,6 @@
 package dogapi;
 
+import java.io.IOException;
 import java.util.List;
 
 public class Main {
@@ -7,14 +8,24 @@ public class Main {
     public static void main(String[] args) {
         String breed = "hound";
         BreedFetcher breedFetcher = new CachingBreedFetcher(new BreedFetcherForLocalTesting());
-        int result = getNumberOfSubBreeds(breed, breedFetcher);
-        System.out.println(breed + " has " + result + " sub breeds");
-
+        try {
+            int result = getNumberOfSubBreeds(breed, breedFetcher);
+            System.out.println(breed + " has " + result + " sub breeds");
+        } catch (BreedFetcher.BreedNotFoundException e) {
+            System.out.println(breed + " does not exist");
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
         breed = "cat";
-        result = getNumberOfSubBreeds(breed, breedFetcher);
-        System.out.println(breed + " has " + result + " sub breeds");
+        try {
+            int result = getNumberOfSubBreeds(breed, breedFetcher);
+            System.out.println(breed + " has " + result + " sub breeds");
+        } catch (BreedFetcher.BreedNotFoundException e) {
+            System.out.println(breed + " does not exist");
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
-
     /**
      * Return the number of sub breeds that the given dog breed has according to the
      * provided fetcher.
@@ -23,9 +34,16 @@ public class Main {
      * @return the number of sub breeds. Zero should be returned if there are no sub breeds
      * returned by the fetcher
      */
-    public static int getNumberOfSubBreeds(String breed, BreedFetcher breedFetcher) {
+    public static int getNumberOfSubBreeds(String breed, BreedFetcher breedFetcher)
+            throws BreedFetcher.BreedNotFoundException, IOException{
         // TODO Task 3 implement this code so that it is entirely consistent with its provided documentation.
         // return statement included so that the starter code can compile and run.
-        return -1;
+        List<String> subs =  breedFetcher.getSubBreeds(breed);
+        if (subs.isEmpty()) {
+            return 0;
+        }
+        else {
+            return subs.size();
+        }
     }
 }
